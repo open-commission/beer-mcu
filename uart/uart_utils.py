@@ -2,7 +2,7 @@ import machine
 
 
 class UARTUtil:
-    def __init__(self, uart_id, baudrate=115200, tx_pin=0, rx_pin=1, bits=8, parity=None, stop=1):
+    def __init__(self, uart_id, baudrate=115200, tx_pin=12, rx_pin=13, bits=8, parity=None, stop=1):
         self.uart = machine.UART(
             uart_id,
             baudrate=baudrate,
