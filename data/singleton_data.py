@@ -5,8 +5,6 @@
 
 import uasyncio as asyncio
 import json
-from machine import Pin, I2C
-from display.ssd1306 import SSD1306_I2C
 
 
 class SingletonData:
@@ -46,27 +44,8 @@ class SingletonData:
         # 共享数据
         self.shared_flow = 0.0            # 共享流速
         
-        # 显示对象
-        self.display = None
-        self._setup_display()
-        
         # 标记已初始化
         self._initialized = True
-    
-    def _setup_display(self):
-        """初始化OLED显示屏"""
-        try:
-            # 初始化I2C
-            i2c_dev = I2C(1, scl=Pin(27), sda=Pin(26), freq=200000)
-            i2c_addr = i2c_dev.scan()
-            
-            if i2c_addr:
-                self.display = SSD1306_I2C(128, 64, i2c_dev)
-                print("✅ OLED显示屏初始化成功")
-            else:
-                print("❌ 未找到OLED显示屏")
-        except Exception as e:
-            print(f"❌ 显示屏初始化失败: {e}")
     
     def update_from_dict(self, data_dict):
         """
@@ -137,49 +116,7 @@ class SingletonData:
             'flow': self.shared_flow
         }
     
-    def update_display(self):
-        """更新OLED显示屏内容"""
-        if not self.display:
-            return
-            
-        try:
-            # 清空屏幕
-            self.display.fill(0)
-            
-            # 显示标题
-            self.display.text("Beer Brewing System", 0, 0)
-            self.display.text(f"Flow: {self.shared_flow:.1f}", 0, 10)
-            
-            # 设备1信息 (左侧)
-            self.display.text("DEV1:", 0, 25)
-            self.display.text(f"T:{self.device1_temp:.1f}", 0, 35)
-            status1 = f"W:{'1' if self.device1_water else '0'} H:{'1' if self.device1_heat else '0'}"
-            self.display.text(status1, 0, 45)
-            status2 = f"P:{'1' if self.device1_pump else '0'} C:{'1' if self.device1_cool else '0'}"
-            self.display.text(status2, 0, 55)
-            
-            # 设备2信息 (右侧)
-            self.display.text("DEV2:", 64, 25)
-            self.display.text(f"T:{self.device2_temp:.1f}", 64, 35)
-            status3 = f"W:{'1' if self.device2_water else '0'} H:{'1' if self.device2_heat else '0'}"
-            self.display.text(status3, 64, 45)
-            status4 = f"P:{'1' if self.device2_pump else '0'} C:{'1' if self.device2_cool else '0'}"
-            self.display.text(status4, 64, 55)
-            
-            # 警告报警指示 (屏幕顶部)
-            warn_text = ""
-            if self.device1_warn or self.device2_warn:
-                warn_text += "W!"
-            if self.device1_alarm or self.device2_alarm:
-                warn_text += "A!"
-            if warn_text:
-                self.display.text(warn_text, 90, 0)
-            
-            # 刷新显示
-            self.display.show()
-            
-        except Exception as e:
-            print(f"❌ 显示更新失败: {e}")
+
     
     def get_serial_output(self):
         """
@@ -221,19 +158,6 @@ class SingletonData:
 data_manager = SingletonData()
 
 
-async def display_refresh_task():
-    """显示刷新任务 - 每秒更新一次显示"""
-    print("🚀 显示刷新任务开始运行...")
-    
-    while True:
-        try:
-            data_manager.update_display()
-            await asyncio.sleep(1)
-        except Exception as e:
-            print(f"❌ 显示刷新任务错误: {e}")
-            await asyncio.sleep(1)
-
-
 async def serial_output_task(uart_util):
     """串口输出任务 - 每秒输出数据"""
     print("🚀 串口输出任务开始运行...")
@@ -254,33 +178,6 @@ async def serial_output_task(uart_util):
         except Exception as e:
             print(f"❌ 串口输出任务错误: {e}")
             await asyncio.sleep(1)
-
-
-def handle_serial_input(json_data):
-    """
-    处理串口输入数据
-    
-    Args:
-        json_data (str): JSON格式的输入数据
-    """
-    try:
-        # 解析JSON数据
-        data = json.loads(json_data)
-        
-        # 验证数据结构
-        if not isinstance(data, dict):
-            print("❌ 无效的数据格式")
-            return
-            
-        # 更新全局数据
-        data_manager.update_from_dict({'device1': data, 'device2': data, 'flow': data.get('flow', 0)})
-        
-        print(f"✅ 数据更新成功: {json_data}")
-        
-    except json.JSONDecodeError as e:
-        print(f"❌ JSON解析错误: {e}")
-    except Exception as e:
-        print(f"❌ 数据处理错误: {e}")
 
 
 # 导出函数
