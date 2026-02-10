@@ -108,8 +108,8 @@ class PulseCounter:
 
 
 async def pulse_monitor_task():
-    """脉冲监测任务 - 定期计算并更新流速数据"""
-    print("🚀 脉冲流量监测任务开始运行...")
+    """脉冲监测任务 - 每秒计算并更新流速数据"""
+    print("🚀 脉冲流量监测任务开始运行(1秒刷新)...")
     
     # 创建脉冲计数器实例
     pulse_counter = PulseCounter(pin_number=11)
@@ -122,24 +122,19 @@ async def pulse_monitor_task():
     
     try:
         while True:
-            # 等待测量间隔
-            await asyncio.sleep(pulse_counter.measurement_interval)
+            # 每秒刷新一次流速数据
+            await asyncio.sleep(1)
             
-            # 计算流速
+            # 计算并更新流速
             current_flow = pulse_counter.calculate_flow_rate()
-            
-            # 更新共享流速数据
             data_manager.shared_flow = current_flow
             
             # 输出调试信息
             if current_flow > 0:
-                print(f"💧 流量传感器数据 - 脉冲计数: {pulse_counter.pulse_count}, "
-                      f"流速: {current_flow:.2f} L/min")
+                print(f"💧 流量数据更新 - 流速: {current_flow:.2f} L/min")
             else:
-                print(f"💧 流量传感器待机 - 当前无流量")
+                print(f"💧 流量传感器待机 - 无流量")
                 
-    except KeyboardInterrupt:
-        print("🛑 收到停止信号")
     except Exception as e:
         print(f"❌ 脉冲监测任务错误: {e}")
     finally:
